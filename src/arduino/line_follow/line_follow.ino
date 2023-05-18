@@ -1,0 +1,321 @@
+#include <Wire.h>
+#include "gw_grayscale_sensor.h"
+
+#define GW_GRAY_ADDR GW_GRAY_ADDR_DEF // 使用默认地址
+
+int single[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+int sub[4] = {0, 0, 0, 0};
+//int weight[4] = {10, 5, 2, 1};
+int weight[4] = {100, 90, 80, 70};
+int sum = 0;
+int comp = 0;
+char inf = '0';
+
+int lf1 = 2;
+int lf2 = 4;
+int LeftF = 3;
+
+int lb1 = 5;
+int lb2 = 7;
+int LeftB = 6;
+
+int rf1 = 8;
+int rf2 = 10;
+int RightF = 9;
+
+
+int rb1 = 12;
+int rb2 = 13;
+int RightB = 11;
+
+int Trig = A2;
+int Echo = A3;
+float distance;
+
+int avg = 90;
+int velocity = 0;
+int offect = 0;
+int half = 0;
+
+int times() {
+  int time1;
+  int time2;
+  while (digitalRead(Echo) == LOW);//等待高电平信号，
+  time1 = micros();//高电平信号触发，记录当前时间
+  while (digitalRead(Echo) == HIGH);//等待底电平信号
+  time2 = micros();//低电平信号触发，记录当前时间
+  Serial.println("函数调用");
+  return (time2 - time1);//返回时间差即引脚高电平所持续的时间
+}
+
+void setup() {
+  pinMode(lf1, OUTPUT);
+  pinMode(lf2, OUTPUT);
+  pinMode(LeftF, OUTPUT);
+
+  pinMode(rf1, OUTPUT);
+  pinMode(rf2, OUTPUT);
+  pinMode(RightF, OUTPUT);
+
+  pinMode(lb1, OUTPUT);
+  pinMode(lb2, OUTPUT);
+  pinMode(LeftB, OUTPUT);
+
+  pinMode(rb1, OUTPUT);
+  pinMode(rb2, OUTPUT);
+  pinMode(RightB, OUTPUT);
+
+  // 初始化I2C
+  Wire.begin();
+
+    pinMode(Trig, OUTPUT);
+  pinMode(Echo, INPUT);
+
+  // 初始化串口
+  Serial.begin(115200);
+}
+
+void run(char incomedate, int offect) {
+  velocity = avg + offect;
+  if (velocity > 255) velocity = 255;
+  Serial.print(incomedate);
+  Serial.print(velocity);
+  Serial.print("\n");
+  if (incomedate == 'F') {
+    //Forward
+    digitalWrite(lf1, HIGH);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(rf1, HIGH);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(lb1, HIGH);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rb1, HIGH);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+    delay(1);
+
+  } else if (incomedate == 'S') {
+    //Stop
+    digitalWrite(lf1, LOW);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(rf1, LOW);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(lb1, LOW);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rb1, LOW);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+    delay(2500);
+
+  }
+  else if (incomedate == 'B') {
+    //Back
+
+    digitalWrite(lf1, LOW);
+    digitalWrite(lf2, HIGH);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(rf1, LOW);
+    digitalWrite(rf2, HIGH);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(lb1, LOW);
+    digitalWrite(lb2, HIGH);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rb1, LOW);
+    digitalWrite(rb2, HIGH);
+    analogWrite(RightB, velocity);
+    delay(20);
+
+  }
+
+  if (incomedate == 'L') {
+    if(velocity > 200)
+    velocity = 200;
+    digitalWrite(lf1, LOW);
+    digitalWrite(lf2, HIGH);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(lb1, LOW);
+    digitalWrite(lb2, HIGH);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rf1, HIGH);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(rb1, HIGH);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+    delay(20);
+
+
+
+  } else if (incomedate == 'R') {
+    if(velocity > 200)
+    velocity = 200;
+    digitalWrite(lf1, HIGH);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(lb1, HIGH);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rf1, LOW);
+    digitalWrite(rf2, HIGH);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(rb1, LOW);
+    digitalWrite(rb2, HIGH);
+    analogWrite(RightB, velocity);
+    delay(20);
+
+  }
+
+  else if (incomedate == 'r') {
+    digitalWrite(lf1, HIGH);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(lb1, HIGH);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rf1, LOW);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(rb1, LOW);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+    delay(10);
+
+  }
+  else if (incomedate == 'l') {
+    digitalWrite(lf1, LOW);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(lb1, LOW);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rf1, HIGH);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(rb1, HIGH);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+    delay(10);
+
+
+  } else if (incomedate == 'T') {
+    digitalWrite(lf1, HIGH);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, velocity);
+
+    digitalWrite(lb1, HIGH);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, velocity);
+
+    digitalWrite(rf1, LOW);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(rb1, LOW);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+  }
+  
+}
+
+void loop() {
+  uint8_t recv_value = 0;
+  uint8_t ping_rep = 0;
+  uint8_t sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8;
+  // 循环 直到PING成功
+
+  if (ping_rep != GW_GRAY_PING_OK) {
+    Wire.beginTransmission(GW_GRAY_ADDR);
+    Wire.write(GW_GRAY_PING);
+    Wire.endTransmission();
+
+    Wire.requestFrom(GW_GRAY_ADDR, 1);
+    ping_rep = Wire.read();
+    
+   
+    //delay(1);
+
+  /* ping 成功 */
+
+  /* 数字数据模式, 设置完毕之后, 每次读取一个8bit的数据, 每个位表示1-8探头的状态 */
+  Wire.beginTransmission(GW_GRAY_ADDR);
+  Wire.write(GW_GRAY_DIGITAL_MODE);
+  Wire.endTransmission();
+
+  // 打印8个探头的状态
+
+    Wire.requestFrom(GW_GRAY_ADDR, 1);
+    recv_value = Wire.read();
+    //Serial.print("传感器数字数据:");
+    for (int i = 1; i <= 8; ++i) {  //探头从1开始,不是0
+      single[i - 1] = (GET_NTH_BIT(recv_value, i));
+      //Serial.print(" ");
+      //Serial.print(GET_NTH_BIT(recv_value, i));
+      //Serial.print(single[i-1]);
+    }
+    //Serial.print("\n");
+
+    sum = 0;
+    for (int i = 0; i < 4; i++) {
+      sub[i] = single[i] - single[7 - i];
+      sum += sub[i] * weight[i];
+      //Serial.print(sub[i]);
+      //Serial.print(" ");
+    }
+    //Serial.print(sum);
+    //Serial.print("\n");
+    comp = 0;
+
+    if (0 - comp <= sum && sum <= comp) {
+      inf = 'F';
+    } else if (sum > comp) {
+      inf = 'l';
+    } else if (sum < 0 - comp) {
+      inf = 'r';
+    }
+
+    if (sub[0] > 0 || sub[1] > 0)
+      inf = 'L';
+    if (sub[0] < 0 || sub[1] < 0)
+      inf = 'R';
+    
+    
+    if (Serial.read() == 'S')
+    {
+     inf = 'S';
+    }
+  
+    
+    sum = abs(sum);
+    //if (sum > 255)sum = 255;
+    run(inf, sum);
+    
+    //delay(10);
+  }
+}
