@@ -1,8 +1,40 @@
-# coding:utf8
+#  coding:utf8
  
 import cv2
 import pyzbar.pyzbar as pyzbar
- 
+
+def putBook(bookCode):
+	global size # 告诉python用的是同一个size
+	i=0	
+	while i<5:
+		if carShelf[i] == "/":
+			carShelf[i] = bookCode
+			size = size + 1
+			print("book {} is put in {}".format(bookCode, i))
+			return
+		else:
+			i=i+1
+	
+	# 如果五个位置都放了书（字典没有"_"位置）
+	print("Stop it and the damn car shelf is already full.") 
+	
+
+def rmvBook(bookCode):
+    global size # 告诉python用的是同一个size	
+    index = carShelf.index(bookCode)
+
+    carShelf[index] = "/"
+    size = size - 1
+    print("book {} is removed from {}".format(bookCode, index))
+    print(carShelf)
+    
+    if size == 0:
+        print("All books returned !")
+        camera.release()
+        cv2.destroyAllWindows()
+
+		
+		
 def decodeDisplay(image):
     barcodes = pyzbar.decode(image)
     for barcode in barcodes:
@@ -23,9 +55,37 @@ def decodeDisplay(image):
  
         # 向终端打印条形码数据和条形码类型
         print("[INFO] Found {} barcode: {}".format(barcodeType, barcodeData))
+        
+        cmpQR(barcodeData)
     return image
  
- 
+# arduino 通信
+def carStop():
+    print("car stop")
+
+# raspbarry Pi 通信
+def returnBook():
+    print("Robot arm puts book from car shelf")
+    
+    
+def cmpQR(barcodeData):
+    global carShelf
+    if barcodeData in carShelf:
+        # 底盘停车
+        carStop()
+
+        # 机械臂放书
+        returnBook()
+
+        # 删除数据
+        rmvBook(barcodeData)
+	size = size -1
+    else:
+        print("QR code doesn't match")
+    
+    
+    
+    
 def detect():
  
     camera = cv2.VideoCapture(0)
@@ -43,6 +103,19 @@ def detect():
     camera.release()
     cv2.destroyAllWindows()
  
- 
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
+    books = [167432, 104588, 193805, 183079, 185725, 134863, 120876, 130956, 176397, 109673]
+    carShelf = ["167432","104588","193805","183079","185725"]
+    size = 5
     detect()
+
+
+
+
+
+
+
+
+
