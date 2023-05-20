@@ -2,6 +2,7 @@
  
 import cv2
 import pyzbar.pyzbar as pyzbar
+import serial
 
 def putBook(bookCode):
 	global size # 告诉python用的是同一个size
@@ -62,13 +63,14 @@ def decodeDisplay(image):
 # arduino 通信
 def carStop():
     print("car stop")
-
+   
 # raspbarry Pi 通信
 def returnBook():
     print("Robot arm puts book from car shelf")
     
     
 def cmpQR(barcodeData):
+    global size
     global carShelf
     if barcodeData in carShelf:
         # 底盘停车
@@ -79,7 +81,7 @@ def cmpQR(barcodeData):
 
         # 删除数据
         rmvBook(barcodeData)
-	size = size -1
+        
     else:
         print("QR code doesn't match")
     
@@ -106,10 +108,15 @@ def detect():
 
 
 if __name__ == "__main__":
-    books = [167432, 104588, 193805, 183079, 185725, 134863, 120876, 130956, 176397, 109673]
-    carShelf = ["167432","104588","193805","183079","185725"]
     size = 5
-    detect()
+    carShelf = []
+    f = open('list.txt')
+    for line in f:
+         carShelf.append(line.strip())
+    print(carShelf)
+    f.close()
+
+detect()
 
 
 
