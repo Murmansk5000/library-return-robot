@@ -1,12 +1,27 @@
+
 #include <Wire.h>
 #include "gw_grayscale_sensor.h"
 
-#define GW_GRAY_ADDR GW_GRAY_ADDR_DEF // 使用默认地址
+#define GW_GRAY_GPIO_CLK A5
+#define GW_GRAY_GPIO_DAT A4
+
+/* 读取8 bit的传感器数据 */
+static uint8_t gw_gray_serial_read(){
+  uint8_t ret = 0;
+  for (int i = 0; i < 8; ++i) {
+    ret <<= 1;
+    digitalWrite(GW_GRAY_GPIO_CLK, 0);
+    ret |= digitalRead(GW_GRAY_GPIO_DAT);
+    digitalWrite(GW_GRAY_GPIO_CLK, 1);
+  }
+  return ret;
+}
+
 
 int single[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 int sub[4] = {0, 0, 0, 0};
 //int weight[4] = {10, 5, 2, 1};
-int weight[4] = {100, 90, 80, 70};
+int weight[4] = {-20, -20, -10, -10};
 int sum = 0;
 int comp = 0;
 char inf = '0';
@@ -30,9 +45,9 @@ int RightB = 11;
 
 int Trig = A2;
 int Echo = A3;
-float distance;
+float distance = 80;
 
-int avg = 90;
+int avg = 70;
 int velocity = 0;
 int offect = 0;
 int half = 0;
@@ -44,7 +59,7 @@ int times() {
   time1 = micros();//高电平信号触发，记录当前时间
   while (digitalRead(Echo) == HIGH);//等待底电平信号
   time2 = micros();//低电平信号触发，记录当前时间
-  Serial.println("函数调用");
+  //Serial.println("函数调用");
   return (time2 - time1);//返回时间差即引脚高电平所持续的时间
 }
 
@@ -65,19 +80,93 @@ void setup() {
   pinMode(rb2, OUTPUT);
   pinMode(RightB, OUTPUT);
 
-  // 初始化I2C
-  Wire.begin();
-
-    pinMode(Trig, OUTPUT);
+  pinMode(Trig, OUTPUT);
   pinMode(Echo, INPUT);
 
+  pinMode(GW_GRAY_GPIO_CLK, OUTPUT);
+  pinMode(GW_GRAY_GPIO_DAT, INPUT_PULLUP);
+
+  digitalWrite(GW_GRAY_GPIO_CLK, 0);
+
+
   // 初始化串口
-  Serial.begin(115200);
+  Serial.begin(9600);
+}
+
+
+
+void loop() {
+  uint8_t sensor_status = 0;
+  uint8_t sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8;
+  // 循环 直到PING成功  // 读取传感器串行输出
+  sensor_status = gw_gray_serial_read();
+
+    // 把读取到的传感器数据打印到公屏上
+
+  digitalWrite(Trig, LOW);
+  delayMicroseconds(0.1);
+  digitalWrite(Trig, HIGH);
+  delayMicroseconds(0.1);
+  digitalWrite(Trig, LOW);
+  int Time1 = times();
+  //int Time2 = pulseIn(Echo, HIGH); //获取超声波返回时长，单位us = 10^-6s
+  distance =  Time1 / 58; //单位厘米 distance = Time1*340*100/1000000/2;
+
+  SEP_ALL_BIT8(sensor_status, sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8);
+
+    //Serial.print("传感器数字数据:");
+    for (int i = 1; i <= 8; ++i) {  //探头从1开始,不是0
+      single[8-i] = (GET_NTH_BIT(sensor_status, i));
+      //Serial.print(" ");
+      //Serial.print(GET_NTH_BIT(recv_value, i));
+      //Serial.print(single[i-1]);
+    }
+    //Serial.print("\n");
+
+    sum = 0;
+    for (int i = 0; i < 4; i++) {
+      sub[i] = single[i] - single[7 - i];
+      sum += sub[i] * weight[i];
+    }
+
+    comp = 0;
+
+    if (0 - comp <= sum && sum <= comp) {
+      inf = 'F';
+    } else if (sum > comp) {
+      inf = 'l';
+    } else if (sum < 0 - comp) {
+      inf = 'r';
+    }
+
+    if (sub[3] > 0 )inf = 'z';
+    if (sub[3] < 0 )inf = 'y';
+
+    if (sub[0] > 0 
+    )
+      inf = 'L';
+    if (sub[0] < 0 
+    )
+      inf = 'R';
+    //Serial.print(distance);
+
+    if (distance < 40) inf = 'S';
+    if (Serial.read() == 'S')
+    {
+     inf = 'S';
+     run(inf,0);
+     delay(5000);
+    }
+    sum = abs(sum);
+
+    run(inf, sum);
+
 }
 
 void run(char incomedate, int offect) {
   velocity = avg + offect;
   if (velocity > 255) velocity = 255;
+  if (velocity < 0)velocity = 0;
   Serial.print(incomedate);
   Serial.print(velocity);
   Serial.print("\n");
@@ -117,7 +206,7 @@ void run(char incomedate, int offect) {
     digitalWrite(rb1, LOW);
     digitalWrite(rb2, LOW);
     analogWrite(RightB, velocity);
-    delay(2500);
+    delay(1000);
 
   }
   else if (incomedate == 'B') {
@@ -143,8 +232,8 @@ void run(char incomedate, int offect) {
   }
 
   if (incomedate == 'L') {
-    if(velocity > 200)
-    velocity = 200;
+    //if (velocity > 200) velocity = 200;
+    if (velocity < 100) velocity = 100;
     digitalWrite(lf1, LOW);
     digitalWrite(lf2, HIGH);
     analogWrite(LeftF, velocity);
@@ -165,8 +254,8 @@ void run(char incomedate, int offect) {
 
 
   } else if (incomedate == 'R') {
-    if(velocity > 200)
-    velocity = 200;
+    //if (velocity > 200) velocity = 200;
+    if (velocity < 100) velocity = 100;
     digitalWrite(lf1, HIGH);
     digitalWrite(lf2, LOW);
     analogWrite(LeftF, velocity);
@@ -187,6 +276,8 @@ void run(char incomedate, int offect) {
   }
 
   else if (incomedate == 'r') {
+    //if (velocity > 200) velocity = 200;
+    if (velocity < 150) velocity = 150;
     digitalWrite(lf1, HIGH);
     digitalWrite(lf2, LOW);
     analogWrite(LeftF, velocity);
@@ -206,6 +297,8 @@ void run(char incomedate, int offect) {
 
   }
   else if (incomedate == 'l') {
+    //if (velocity > 200) velocity = 200;
+    if (velocity < 150) velocity = 150;
     digitalWrite(lf1, LOW);
     digitalWrite(lf2, LOW);
     analogWrite(LeftF, velocity);
@@ -224,7 +317,24 @@ void run(char incomedate, int offect) {
     delay(10);
 
 
-  } else if (incomedate == 'T') {
+  } else if (incomedate == 'y') {
+    digitalWrite(lf1, HIGH);
+    digitalWrite(lf2, LOW);
+    analogWrite(LeftF, avg);
+
+    digitalWrite(lb1, HIGH);
+    digitalWrite(lb2, LOW);
+    analogWrite(LeftB, avg);
+
+    digitalWrite(rf1, HIGH);
+    digitalWrite(rf2, LOW);
+    analogWrite(RightF, velocity);
+
+    digitalWrite(rb1, HIGH);
+    digitalWrite(rb2, LOW);
+    analogWrite(RightB, velocity);
+    
+  }else if (incomedate == 'z') {
     digitalWrite(lf1, HIGH);
     digitalWrite(lf2, LOW);
     analogWrite(LeftF, velocity);
@@ -233,89 +343,12 @@ void run(char incomedate, int offect) {
     digitalWrite(lb2, LOW);
     analogWrite(LeftB, velocity);
 
-    digitalWrite(rf1, LOW);
+    digitalWrite(rf1, HIGH);
     digitalWrite(rf2, LOW);
-    analogWrite(RightF, velocity);
+    analogWrite(RightF, avg);
 
-    digitalWrite(rb1, LOW);
+    digitalWrite(rb1, HIGH);
     digitalWrite(rb2, LOW);
-    analogWrite(RightB, velocity);
-  }
-  
-}
-
-void loop() {
-  uint8_t recv_value = 0;
-  uint8_t ping_rep = 0;
-  uint8_t sensor1, sensor2, sensor3, sensor4, sensor5, sensor6, sensor7, sensor8;
-  // 循环 直到PING成功
-
-  if (ping_rep != GW_GRAY_PING_OK) {
-    Wire.beginTransmission(GW_GRAY_ADDR);
-    Wire.write(GW_GRAY_PING);
-    Wire.endTransmission();
-
-    Wire.requestFrom(GW_GRAY_ADDR, 1);
-    ping_rep = Wire.read();
-    
-   
-    //delay(1);
-
-  /* ping 成功 */
-
-  /* 数字数据模式, 设置完毕之后, 每次读取一个8bit的数据, 每个位表示1-8探头的状态 */
-  Wire.beginTransmission(GW_GRAY_ADDR);
-  Wire.write(GW_GRAY_DIGITAL_MODE);
-  Wire.endTransmission();
-
-  // 打印8个探头的状态
-
-    Wire.requestFrom(GW_GRAY_ADDR, 1);
-    recv_value = Wire.read();
-    //Serial.print("传感器数字数据:");
-    for (int i = 1; i <= 8; ++i) {  //探头从1开始,不是0
-      single[i - 1] = (GET_NTH_BIT(recv_value, i));
-      //Serial.print(" ");
-      //Serial.print(GET_NTH_BIT(recv_value, i));
-      //Serial.print(single[i-1]);
-    }
-    //Serial.print("\n");
-
-    sum = 0;
-    for (int i = 0; i < 4; i++) {
-      sub[i] = single[i] - single[7 - i];
-      sum += sub[i] * weight[i];
-      //Serial.print(sub[i]);
-      //Serial.print(" ");
-    }
-    //Serial.print(sum);
-    //Serial.print("\n");
-    comp = 0;
-
-    if (0 - comp <= sum && sum <= comp) {
-      inf = 'F';
-    } else if (sum > comp) {
-      inf = 'l';
-    } else if (sum < 0 - comp) {
-      inf = 'r';
-    }
-
-    if (sub[0] > 0 || sub[1] > 0)
-      inf = 'L';
-    if (sub[0] < 0 || sub[1] < 0)
-      inf = 'R';
-    
-    
-    if (Serial.read() == 'S')
-    {
-     inf = 'S';
-    }
-  
-    
-    sum = abs(sum);
-    //if (sum > 255)sum = 255;
-    run(inf, sum);
-    
-    //delay(10);
+    analogWrite(RightB, avg);
   }
 }
