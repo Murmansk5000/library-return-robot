@@ -1,0 +1,17 @@
+# Local development archive; retained on disk but intentionally not published.
+/archive/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime-generated inventory files
+barcode.txt
+
+# IDE and OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -50,7 +50,7 @@ if __name__ == "__main__":
             # 等待一段时间再进行下一次读取，避免频繁读取导致程序无响应
             time.sleep(0.2)
             if(size == 5):
-                    file_handle = open('list2.txt',mode = 'w')
+                    file_handle = open('barcode.txt',mode = 'w')
                     file_handle.writelines([carShelf[0],'\n',carShelf[1],'\n',carShelf[2],'\n',carShelf[3],'\n',carShelf[4]])
                     file_handle.close()
     

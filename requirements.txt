@@ -1,0 +1,7 @@
+opencv-python
+pyzbar
+pyserial
+adafruit-blinka
+adafruit-circuitpython-pn532
+pymycobot
+RPi.GPIO

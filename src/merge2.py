@@ -119,6 +119,8 @@ def pick(location):
 
 
 
+
+
 def putBook(bookCode):
 	global size # 告诉python用的是同一个size
 	i=0	
@@ -227,13 +229,13 @@ def detect():
 
 if __name__ == "__main__":
     size = 5
-    mc = MyCobotSocket("10.142.223.177", 9000)
+    mc = MyCobotSocket("10.149.0.6", 9000)
 
     # 树莓派版本需要输入connect函数，默认值为("/dev/ttyAMA0","1000000")
     mc.connect("/dev/ttyAMA0", "1000000")
     print("Arm has been connected!")
     carShelf = []
-    f = open('list.txt')
+    f = open('list2.txt')
     for line in f:
          carShelf.append(line.strip())
     print(carShelf)

@@ -3,7 +3,10 @@
 import cv2
 import pyzbar.pyzbar as pyzbar
 import serial
-
+send = 'S'  # 发送给arduino的数据
+Port = "/dev/ttyACM0"  # 串口
+baudRate = 9600 # 波特率
+ser = serial.Serial(Port, baudRate, timeout=1)
 def putBook(bookCode):
 	global size # 告诉python用的是同一个size
 	i=0	
@@ -42,7 +45,7 @@ def decodeDisplay(image):
         # 提取条形码的边界框的位置
         # 画出图像中条形码的边界框
         (x, y, w, h) = barcode.rect
-        cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
+        #cv2.rectangle(image, (x, y), (x + w, y + h), (0, 0, 255), 2)
  
         # 条形码数据为字节对象，所以如果我们想在输出图像上
         # 画出来，就需要先将它转换成字符串
@@ -63,7 +66,7 @@ def decodeDisplay(image):
 # arduino 通信
 def carStop():
     print("car stop")
-   
+    ser.write(send.encode())
 # raspbarry Pi 通信
 def returnBook():
     print("Robot arm puts book from car shelf")
@@ -72,6 +75,7 @@ def returnBook():
 def cmpQR(barcodeData):
     global size
     global carShelf
+    print(barcodeData)
     if barcodeData in carShelf:
         # 底盘停车
         carStop()
@@ -99,8 +103,8 @@ def detect():
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         im=decodeDisplay(gray)
  
-        cv2.waitKey(5)
-        cv2.imshow("camera", im)
+        #cv2.waitKey(5)
+        #cv2.imshow("camera", im)
  
     camera.release()
     cv2.destroyAllWindows()
