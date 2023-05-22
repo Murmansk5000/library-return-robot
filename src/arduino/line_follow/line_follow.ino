@@ -21,7 +21,7 @@ static uint8_t gw_gray_serial_read(){
 int single[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 int sub[4] = {0, 0, 0, 0};
 //int weight[4] = {10, 5, 2, 1};
-int weight[4] = {-20, -20, -10, -10};
+int weight[4] = {120, 110, 100, 90};
 int sum = 0;
 int comp = 0;
 char inf = '0';
@@ -47,7 +47,7 @@ int Trig = A2;
 int Echo = A3;
 float distance = 80;
 
-int avg = 70;
+int avg = 80;
 int velocity = 0;
 int offect = 0;
 int half = 0;
@@ -139,13 +139,12 @@ void loop() {
       inf = 'r';
     }
 
-    if (sub[3] > 0 )inf = 'z';
-    if (sub[3] < 0 )inf = 'y';
-
     if (sub[0] > 0 
+    || sub[1] > 0
     )
       inf = 'L';
     if (sub[0] < 0 
+    || sub[1] < 0
     )
       inf = 'R';
     //Serial.print(distance);
@@ -155,7 +154,7 @@ void loop() {
     {
      inf = 'S';
      run(inf,0);
-     delay(5000);
+     delay(42000);
     }
     sum = abs(sum);
 
@@ -232,8 +231,8 @@ void run(char incomedate, int offect) {
   }
 
   if (incomedate == 'L') {
-    //if (velocity > 200) velocity = 200;
-    if (velocity < 100) velocity = 100;
+    if (velocity > 200) velocity = 200;
+    //if (velocity < 100) velocity = 100;
     digitalWrite(lf1, LOW);
     digitalWrite(lf2, HIGH);
     analogWrite(LeftF, velocity);
@@ -254,8 +253,8 @@ void run(char incomedate, int offect) {
 
 
   } else if (incomedate == 'R') {
-    //if (velocity > 200) velocity = 200;
-    if (velocity < 100) velocity = 100;
+    if (velocity > 200) velocity = 200;
+    //if (velocity < 100) velocity = 100;
     digitalWrite(lf1, HIGH);
     digitalWrite(lf2, LOW);
     analogWrite(LeftF, velocity);
@@ -317,24 +316,7 @@ void run(char incomedate, int offect) {
     delay(10);
 
 
-  } else if (incomedate == 'y') {
-    digitalWrite(lf1, HIGH);
-    digitalWrite(lf2, LOW);
-    analogWrite(LeftF, avg);
-
-    digitalWrite(lb1, HIGH);
-    digitalWrite(lb2, LOW);
-    analogWrite(LeftB, avg);
-
-    digitalWrite(rf1, HIGH);
-    digitalWrite(rf2, LOW);
-    analogWrite(RightF, velocity);
-
-    digitalWrite(rb1, HIGH);
-    digitalWrite(rb2, LOW);
-    analogWrite(RightB, velocity);
-    
-  }else if (incomedate == 'z') {
+  } else if (incomedate == 'T') {
     digitalWrite(lf1, HIGH);
     digitalWrite(lf2, LOW);
     analogWrite(LeftF, velocity);
@@ -343,12 +325,12 @@ void run(char incomedate, int offect) {
     digitalWrite(lb2, LOW);
     analogWrite(LeftB, velocity);
 
-    digitalWrite(rf1, HIGH);
+    digitalWrite(rf1, LOW);
     digitalWrite(rf2, LOW);
-    analogWrite(RightF, avg);
+    analogWrite(RightF, velocity);
 
-    digitalWrite(rb1, HIGH);
+    digitalWrite(rb1, LOW);
     digitalWrite(rb2, LOW);
-    analogWrite(RightB, avg);
+    analogWrite(RightB, velocity);
   }
 }
